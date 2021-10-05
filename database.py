@@ -1,6 +1,6 @@
 import os
 import sqlite3
-import random
+import util
 
 conn: sqlite3.Connection = None
 cur: sqlite3.Cursor = None
@@ -80,8 +80,7 @@ def login(username, password):
 
 # games
 
-game_chars = "abcdefghijklmnopqrstuvwxyz0123456789"
-
 def create_game():
-    id = ''.join(random.choices(game_chars, k=6))
+    id = util.gen_id(k=6)
     cur.execute("insert into game (id, state, turn) values (?, ?, 0)", (id, initial_state))
+    return id
