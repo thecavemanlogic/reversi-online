@@ -1,0 +1,40 @@
+
+.grid {
+    display: inline-grid;
+    grid-template-columns: repeat(8, auto);
+    padding: 0px;
+}
+
+.square {
+    width: 4em;
+    height: 4em;
+    padding: 0px;
+    transition-duration: 1500ms;
+}
+
+.square-light {
+    background-color: #d79d4e;
+    border: 5px solid #d79d4e;
+}
+
+.square-dark {
+    background-color: #8b5000;
+    border: 5px solid #8b5000;
+}
+
+.square:hover {
+    border: 5px solid rgb(201, 201, 201);
+    transition-duration: 250ms;
+    background-color: black;
+}
+
+/* https://stackoverflow.com/questions/6921792/how-to-draw-circle-in-html-page#:~:text=There%20is%20not%20technically%20a%20way%20to%20draw,all%20elements%20into%20a%20circle%2C%20regardless%20of%20size. */
+
+.circle {
+    width: 4em;
+    height: 4em;
+    -webkit-border-radius: 2em;
+    -moz-border-radius: 2em;
+    border-radius: 2em;
+    background: red;
+}

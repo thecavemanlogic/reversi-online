@@ -33,7 +33,7 @@ def init():
         create table game (
             id text not null,
             state text not null,
-            turn integer not null,
+            turn text not null,
             winner text,
 
             primary key(id),
@@ -80,7 +80,26 @@ def login(username, password):
 
 # games
 
-def create_game():
-    id = util.gen_id(k=6)
-    cur.execute("insert into game (id, state, turn) values (?, ?, 0)", (id, initial_state))
-    return id
+def create_game(players: list):
+
+    if len(players) != 2:
+        raise Exception("Need 2 players to create a game!")
+
+    # create game
+    game_id = util.gen_id(k=6)
+    cur.execute("insert into game (id, state, turn) values (?, ?, 0)", (game_id, initial_state))
+
+    # add players to game
+    cur.execute("insert into participation values (?, ?), (?, ?)", (game_id, players[0], game_id, players[1]))
+    
+    return get_game(game_id)
+
+def get_game(id):
+    cur.execute("select * from game where id = ?", (id,))
+    return cur.fetchone()
+
+def update_game(id, new_state):
+    cur.execute("update game set state = ? where id = ?", (new_state, id))
+
+def get_game_participants(id):
+    cur.execute("select user from game inner join participation on id = game where id = ?", (id,))
