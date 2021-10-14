@@ -19,19 +19,30 @@ def base(*contents):
         )
     ).to_html()
 
-def create_game_square(idx):
+def create_game_square(idx, value):
     x = idx % 8
     y = idx // 8
     color = "light" if (x % 2 == 0) != (y % 2 == 0) else "dark"
+
+    def get_piece(value):
+        if value == "X":
+            return html.div(cls="circle black")
+        elif value == "O":
+            return html.div(cls="circle white")
+
     return html.div(
-        "" if random() > 0.8 else html.div(cls="circle"),
+        "" if value == "." else get_piece(value),
         cls=f"square-{idx} square square-{color}",
         onclick=f"click_square({idx});"
     )
 
-def create_game_board():
+def create_game_board(state: list):
 
-    squares = [create_game_square(i) for i in range(64)]
+    # squares = [(0 for col in row) for row in state]
+    # squares = [create_game_square(i) for i in range(64)]
+    flat = [col for row in state for col in row]
+
+    squares = [create_game_square(idx, val) for idx, val in enumerate(flat)]
 
     return html.div(
         *squares,
@@ -50,7 +61,8 @@ def index():
             html.p("how are you doing?"),
             html.button(
                 "Join Game",
-                onclick="join_game();"
+                onclick="join_game();",
+                id="join-game-btn"
             )
         )
     )
@@ -62,12 +74,12 @@ def join_game():
 
     resp = Response()
 
-    # if not a registered user
-    user_id = request.cookies.get("user_id")
-    if user_id is None:
-        new_player = Player()
-        user_id = gen_id()
-        resp.set_cookie("user_id", new_player.id)
+    # register the client if not already a user
+    user = Player.get(request.cookies.get("user_id"))
+    if user is None:
+        user = Player()
+        user.save()
+        resp.set_cookie("user_id", user.id)
 
     # get game_id if present
     game_id = request.args.get("id")
@@ -80,7 +92,7 @@ def join_game():
         if game:
             
             # if the user successfully joined the game
-            if game.join(user_id):
+            if game.join(user.id):
                 print("joining game", game_id)
                 resp.location = f"/play-game?id={game_id}"
                 resp.status_code = 302
@@ -89,38 +101,29 @@ def join_game():
             # if the user failed to join the game
             else:
                 print("user could not join game", game_id)
-                resp.set_data("{}")
 
         # if the game does not exist
         else:
             print(f"game {game_id} does not exist")
             resp.set_data(json.dumps({
-                "error": "game does not exist" 
+                "error": "game does not exist"
             }))
-    
-    # if there is another player in the queue
-    elif len(game_queue) > 0 and user_id not in game_queue:
+    elif len(game_queue) == 1 and user.id not in game_queue:
 
-        print("creating a new game")
+        other_user = Player.get(game_queue.pop())
         
-        # create a new game
         game = Game()
-        game.join(user_id)
-        game.join(game_queue.pop())
-
-        resp.location = f"/play-game?id={game.id}"
-        resp.status_code = 302
-        resp.set_data("{}")
+        game.join(user.id)
+        game.join(other_user.id)
+        game.save()
+        
 
     else:
-        print("adding player to queue", len(game_queue))
-        game_queue.add(user_id)
-        resp.set_data("{}")
+        game_queue.add(user.id)
 
-    # return redirect("/play-game?id=", resp)
     return resp
 
-@app.route("/queue-status")
+@app.route("/check-queue")
 def queue_status():
     player = Player.get(request.cookies.get("user_id"))
     if not player:
@@ -128,9 +131,9 @@ def queue_status():
     
     game_id = player.get_next_game()
     if not game_id:
-        return {}
+        return ""
     
-    return redirect(f"/player-game?id={game_id}")
+    return redirect(f"/play-game?id={game_id}")
     
 
 @app.route("/play-game")
@@ -143,8 +146,40 @@ def play_game():
 
     return base(
         h1(f"Game {game.id}"),
-        create_game_board()
+        create_game_board(game.state)
     )
+
+@app.route("/make-move", methods=["POST"])
+def make_move():
+
+    user = Player.get(request.cookies.get("user_id"))
+    if not user:
+        abort(401)
+
+    body = request.get_json()
+
+    print("body:", body, type(body))
+
+    idx = body.get("idx")
+    game = Game.get(body.get("game"))
+
+    if idx is None:
+        print("invalid idx", idx)
+        abort(400)
+    elif game is None:
+        print("game not found!", body.get("game"), Game.games)
+        abort(404)
+
+    if not game.is_next(user.id):
+        return "Not your turn", 400
+
+    print(1)
+
+    game.make_move(user, idx)
+
+    print(2)
+
+    return ""
 
 # @app.route("/make-move", methods=["POST"])
 # def make_move():

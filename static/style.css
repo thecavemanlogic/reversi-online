@@ -36,5 +36,13 @@
     -webkit-border-radius: 2em;
     -moz-border-radius: 2em;
     border-radius: 2em;
-    background: red;
+    
+}
+
+.black {
+    background: black;
+}
+
+.white {
+    background: white;
 }

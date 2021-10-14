@@ -1,6 +1,6 @@
 import os
 import sqlite3
-import util
+import db.util
 
 conn: sqlite3.Connection = None
 cur: sqlite3.Cursor = None
@@ -33,6 +33,7 @@ def init():
         create table game (
             id text not null,
             state text not null,
+            mode text not null,
             turn text not null,
             winner text,
 
