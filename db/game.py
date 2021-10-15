@@ -30,6 +30,16 @@ class Game:
     ACTIVE = 1
     FINISHED = 2
 
+    BAD_MOVE = 3
+    NOT_YOUR_TURN = 4
+    NOT_IN_GAME = 5
+    ALL_GOOD = 6
+
+    @staticmethod
+    def get_code(code: int) -> str:
+        strings = ["OPEN", "ACTIVE", "FINISHED", "BAD_MOVE", "NOT_YOUR_TURN", "Not in game", "All good"]
+        return strings[code]
+
     @staticmethod
     def get(id):
         return Game.games.get(id)
@@ -95,7 +105,7 @@ class Game:
         }
     
     def is_next(self, user):
-        return user == self.turn
+        return user == self.players[self.turn]
     
     def join(self, name):
         if self.mode != Game.OPEN:
@@ -110,10 +120,69 @@ class Game:
         self.players.append(name)
 
         if len(self.players) == 2:
-            self.turn = random.choice(self.players)
+            self.turn = random.choice([0, 1])
             self.mode = Game.ACTIVE
         
         return True
+    
+    def make_ray(self, x: int, y: int, dx: int, dy: int, max_steps=2, goal_chr="") -> bool:
+
+        if dx == 0 and dy == 0:
+            return False
+
+        steps = 0
+
+        print("dx and dy:", dx, dy)
+
+        while (x >= 0 and x < 8) and (y >= 0 and y < 8) and steps < max_steps:
+
+            print(f"x: {x} y: {y}")
+
+            if self.state[y][x] == goal_chr:
+                return True
+
+            x += dx
+            y += dy
+            steps += 1
+        
+        return False
+    
+    def make_rays(self, x: int, y: int, max_steps=2, goal_chr="") -> bool:
+        for i in range(9):
+            dx = (i // 3) - 1
+            dy = (i % 3) - 1
+            if self.make_ray(x, y, dx, dy, max_steps=max_steps, goal_chr=goal_chr):
+                return True
+        return False
+    
+    def make_move(self, user: str, idx: int) -> int:
+        
+        # handle errors
+        if user not in self.players:
+            return Game.NOT_IN_GAME
+        elif not self.is_next(user):
+            return Game.NOT_YOUR_TURN
+        elif idx < 0 or idx > 63:
+            return Game.BAD_MOVE
+        
+        x = idx % 8
+        y = idx // 8
+
+        piece = "O" if self.players.index(user) == 0 else "X"
+        o_piece = "O" if piece == "X" else "X"
+
+        if self.state[y][x] != ".":
+            return Game.BAD_MOVE
+        elif not self.make_rays(x, y, goal_chr=o_piece):
+            return Game.BAD_MOVE
+        
+        
+        
+        self.turn = (self.turn + 1) % 2
+
+        return Game.ALL_GOOD
+        
+
 
 if len(Game.games) == 0:
     Game.load()

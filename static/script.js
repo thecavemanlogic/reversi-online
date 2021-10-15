@@ -46,7 +46,7 @@ function click_square(idx) {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            game_id: game_id,
+            game: game_id,
             index: idx
         }),
         redirect: "follow"

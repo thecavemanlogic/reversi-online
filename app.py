@@ -160,7 +160,7 @@ def make_move():
 
     print("body:", body, type(body))
 
-    idx = body.get("idx")
+    idx = body.get("index")
     game = Game.get(body.get("game"))
 
     if idx is None:
@@ -170,16 +170,11 @@ def make_move():
         print("game not found!", body.get("game"), Game.games)
         abort(404)
 
-    if not game.is_next(user.id):
-        return "Not your turn", 400
+    err = game.make_move(user.id, idx)
+    if err != Game.ALL_GOOD:
+        print("ERROR:", Game.get_code(err))
 
-    print(1)
-
-    game.make_move(user, idx)
-
-    print(2)
-
-    return ""
+    return Game.get_code(err), 200 if err == Game.ALL_GOOD else 400
 
 # @app.route("/make-move", methods=["POST"])
 # def make_move():
