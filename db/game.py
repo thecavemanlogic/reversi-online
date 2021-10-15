@@ -14,8 +14,8 @@ initial_state = """
 ........
 ........
 ........
-...XO...
-...OX...
+...BW...
+...WB...
 ........
 ........
 ........
@@ -104,8 +104,11 @@ class Game:
             "players": self.players
         }
     
-    def is_next(self, user):
+    def is_next(self, user: str) -> bool:
         return user == self.players[self.turn]
+    
+    def get_color(self, user: str) -> str:
+        return ["black", "white"][self.players.index(user)]
     
     def join(self, name):
         if self.mode != Game.OPEN:
@@ -128,7 +131,7 @@ class Game:
     def make_ray(self, x: int, y: int, dx: int, dy: int, max_steps=2, goal_chr="") -> bool:
 
         if dx == 0 and dy == 0:
-            return False
+            raise Exception("Don't do that!")
 
         steps = 0
 
@@ -148,12 +151,15 @@ class Game:
         return False
     
     def make_rays(self, x: int, y: int, max_steps=2, goal_chr="") -> bool:
+        arr = []
         for i in range(9):
+            if i == 4:
+                continue
             dx = (i // 3) - 1
             dy = (i % 3) - 1
             if self.make_ray(x, y, dx, dy, max_steps=max_steps, goal_chr=goal_chr):
-                return True
-        return False
+                arr.append((dx, dy))
+        return arr
     
     def make_move(self, user: str, idx: int) -> int:
         
@@ -168,16 +174,19 @@ class Game:
         x = idx % 8
         y = idx // 8
 
-        piece = "O" if self.players.index(user) == 0 else "X"
-        o_piece = "O" if piece == "X" else "X"
+        piece = "B" if self.players.index(user) == 0 else "W"
+        o_piece = "W" if piece == "B" else "B"
+
+        neighbors = self.make_rays(x, y, goal_chr=o_piece)
 
         if self.state[y][x] != ".":
             return Game.BAD_MOVE
-        elif not self.make_rays(x, y, goal_chr=o_piece):
+        elif len(neighbors) == 0:
             return Game.BAD_MOVE
         
-        
-        
+
+        self.state[y][x] = piece
+
         self.turn = (self.turn + 1) % 2
 
         return Game.ALL_GOOD

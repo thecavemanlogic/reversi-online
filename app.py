@@ -4,9 +4,12 @@ from db.player import Player
 from htmllib import html, head, body, div, h1, div
 from db.util import gen_id
 from random import random
+# from flask_sockets import Sockets
 import json
+import websocket
 
 app = Flask(__name__)
+# sockets = Sockets(app)
 
 def base(*contents):
     return html.html(
@@ -25,9 +28,9 @@ def create_game_square(idx, value):
     color = "light" if (x % 2 == 0) != (y % 2 == 0) else "dark"
 
     def get_piece(value):
-        if value == "X":
+        if value == "B":
             return html.div(cls="circle black")
-        elif value == "O":
+        elif value == "W":
             return html.div(cls="circle white")
 
     return html.div(
@@ -143,9 +146,14 @@ def play_game():
     game = Game.get(request.args.get("id"))
     if not game:
         return abort(404)
+    
+    user = Player.get(request.cookies.get("user_id"))
+    if not user:
+        return abort(401)
 
     return base(
         h1(f"Game {game.id}"),
+        html.p(f"Your color: {game.get_color(user.id)}"),
         create_game_board(game.state)
     )
 
@@ -176,9 +184,15 @@ def make_move():
 
     return Game.get_code(err), 200 if err == Game.ALL_GOOD else 400
 
-# @app.route("/make-move", methods=["POST"])
-# def make_move():
-
+# @sockets.route("/test")
+# def echo_socket(ws):
+#     while not ws.Closed:
+#         msg = ws.receive()
+#         ws.send(msg)
 
 if __name__ == "__main__":
+    # from gevent import pywsgi
+    # from geventwebsocket.handler import WebSocketHandler
+    # server = pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler)
+    # server.serve_forever()
     app.run(debug=True, host="0.0.0.0")

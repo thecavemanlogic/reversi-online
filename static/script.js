@@ -52,8 +52,19 @@ function click_square(idx) {
         redirect: "follow"
     }).then(resp => {
         console.log('all good!')
-        resp.redirected
+        location = location.href;
     }, resp => {
         alert("invalid move!");
     })
+}
+
+if (location.pathname === "/play-game") {
+    // setTimeout(() => {
+    //     location = location.href;
+    // }, 1000);
+}
+
+const ws = new WebSocket(`ws://${location.host}/test`);
+ws.onerror = err => {
+    console.log(err)
 }
