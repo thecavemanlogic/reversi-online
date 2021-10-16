@@ -84,12 +84,14 @@ class Game:
             self.mode = data["mode"]
             self.turn = data["turn"]
             self.players = data["players"]
+            self.end_state = data["end_state"]
         else:
             self.id = gen_id(resource=Game.games)
             self.state = Game.state_to_list(initial_state)
             self.mode = Game.OPEN
             self.turn = None
             self.players = []
+            self.end_state = None
     
     def save(self):
         Game.games[self.id] = self
@@ -101,7 +103,8 @@ class Game:
             "state": Game.state_to_string(self.state),
             "mode": self.mode,
             "turn": self.turn,
-            "players": self.players
+            "players": self.players,
+            "end_state": self.end_state
         }
     
     def is_next(self, user: str) -> bool:
@@ -135,11 +138,7 @@ class Game:
 
         steps = 0
 
-        print("dx and dy:", dx, dy)
-
         while (x >= 0 and x < 8) and (y >= 0 and y < 8) and steps < max_steps:
-
-            print(f"x: {x} y: {y}")
 
             if self.state[y][x] == goal_chr:
                 return True
@@ -161,15 +160,76 @@ class Game:
                 arr.append((dx, dy))
         return arr
     
+    def perform_ray_move(self, x: int, y: int, dx: int, dy: int, color: str, side_effect=True):
+
+        if dx == 0 and dy == 0:
+            return []
+        
+        other_color = "W" if color == "B" else "B"
+
+        original_x = x
+        original_y = y
+        
+        x += dx
+        y += dy
+
+        while True:
+            if x < 0 or x >= 8 or y < 0 or y >= 8:
+                return []
+            elif self.state[y][x] == ".":
+                return []
+            elif self.state[y][x] == color:
+                break
+            x += dx
+            y += dy
+        
+        if abs(x - original_x) == 1 or abs(y - original_y) == 1:
+            return []
+
+        if not side_effect:
+            return True
+
+        changes = []
+        while x != original_x or y != original_y:
+            self.state[y][x] = color
+            changes.append((x + y * 8, color))
+            x -= dx
+            y -= dy
+        
+        self.state[y][x] = color
+        changes.append((x + y * 8, color))
+
+        return changes
+    
+    def perform_move(self, x: int, y: int, color: str, side_effect=True):
+        if self.state[y][x] != ".":
+            return []
+        if side_effect:
+            return [item for dx in range(-1, 2) for dy in range(-1, 2) for item in self.perform_ray_move(x, y, dx, dy, color, side_effect)]
+        else:
+            return any([self.perform_ray_move(x, y, dx, dy, color, side_effect) for dx in range(-1, 2) for dy in range(-1, 2)])
+        
+    def get_user_color(self, user: str):
+        return "B" if self.players.index(user) == 0 else "W"
+
+    def has_move(self, user: str) -> bool:
+        color = self.get_user_color(user)
+        for y in range(8):
+            for x in range(8):
+                if self.perform_move(x, y, color, side_effect=False) == True:
+                    return True
+        return False
+
+
     def make_move(self, user: str, idx: int) -> int:
         
         # handle errors
         if user not in self.players:
-            return Game.NOT_IN_GAME
+            return Game.NOT_IN_GAME, None
         elif not self.is_next(user):
-            return Game.NOT_YOUR_TURN
+            return Game.NOT_YOUR_TURN, None
         elif idx < 0 or idx > 63:
-            return Game.BAD_MOVE
+            return Game.BAD_MOVE, None
         
         x = idx % 8
         y = idx // 8
@@ -177,20 +237,49 @@ class Game:
         piece = "B" if self.players.index(user) == 0 else "W"
         o_piece = "W" if piece == "B" else "B"
 
-        neighbors = self.make_rays(x, y, goal_chr=o_piece)
-
-        if self.state[y][x] != ".":
-            return Game.BAD_MOVE
-        elif len(neighbors) == 0:
-            return Game.BAD_MOVE
-        
-
-        self.state[y][x] = piece
+        changes = self.perform_move(x, y, piece)
+        if len(changes) == 0:
+            return Game.BAD_MOVE, None
 
         self.turn = (self.turn + 1) % 2
 
-        return Game.ALL_GOOD
+        if not self.has_move(self.players[self.turn]):
+            self.end()
+
+        return Game.ALL_GOOD, changes
         
+    def end(self):
+        self.mode = Game.FINISHED
+
+        b_score = 0
+        w_score = 0
+
+        for row in self.state:
+            for square in row:
+                if square == "B":
+                    b_score += 1
+                elif square == "W":
+                    w_score += 1
+        
+        self.end_state = {
+            "scores": {
+                "white": w_score,
+                "black": b_score
+            } 
+        }
+    
+    def is_done(self):
+        return self.mode == Game.FINISHED
+    
+    def get_winner(self):
+        if self.end_state:
+            w = self.end_state["scores"]["white"]
+            b = self.end_state["scores"]["black"]
+            if w > b:
+                return self.players[1]
+            elif w < b:
+                return self.players[0]
+        return None
 
 
 if len(Game.games) == 0:
