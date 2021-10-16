@@ -1,4 +1,5 @@
 import json
+import threading
 
 from flask import Flask, request, Response, redirect, send_from_directory, abort
 from db.game import Game
@@ -6,7 +7,9 @@ from db.player import Player
 from htmllib import html, head, body, div, h1
 # from db.util import gen_id
 # from random import random
-from flask_socketio import SocketIO, emit, send
+from flask_socketio import SocketIO, emit, join_room, leave_room, rooms
+from threading import Timer
+
 
 
 app = Flask(__name__)
@@ -26,12 +29,41 @@ def base(*contents):
                 crossorigin="anonymous"
             ),
             html.script(src="/static/script.js"),
-            html.link(rel="stylesheet", href="/static/style.css")
+            html.link(rel="stylesheet", href="/static/style.css"),
+
+            # Google Fonts
+            html.link(rel="stylesheet", href="https://fonts.googleapis.com/css?family=Roboto")
         ),
         body(
             *contents
         )
     ).to_html()
+
+def game_base(*contents):
+    user = Player.get(request.cookies.get("user_id"))
+    return base(
+        div(
+            id="banner",
+            contents=[
+                html.span(
+                    "Reversi Online",
+                    cls="logo"
+                ),
+                html.button(
+                    "Logout",
+                    cls="logout-btn"
+                ),
+                html.span(
+                    user.name,
+                    id="name-display"
+                )
+            ]
+        ),
+        div(
+            *contents,
+            id="body-content",
+        )
+    )
 
 def create_game_square(idx, value):
     x = idx % 8
@@ -69,16 +101,32 @@ def send_static(path):
 
 @app.route("/")
 def index():
+    logged_in = Player.get(request.cookies.get("user_id")) is not None
+
+    if logged_in:
+        big_button = html.button(
+            "Go to Dashboard",
+            onclick="location='/dashboard';"
+        )
+    else:
+        html.button(
+            "Join Game",
+            onclick="join_game();",
+            id="join-game-btn"
+        )
+
     return base(
         h1("Hello there!"),
         div(
             html.p("how are you doing?"),
-            html.button(
-                "Join Game",
-                onclick="join_game();",
-                id="join-game-btn"
-            )
+            big_button
         )
+    )
+
+@app.route("/dashboard")
+def dashboard():
+    return game_base(
+        html.h2("Active Games")
     )
 
 game_queue = set()
@@ -162,47 +210,53 @@ def play_game():
     if not user:
         return abort(401)
 
-    return base(
+    return game_base(
         h1(f"Game {game.id}"),
         html.p(f"Your color: {game.get_color(user.id)}"),
+        html.p(f"Your turn? <span id=\"turn\">{game.is_next(user.id)}</span>"),
         create_game_board(game.state)
     )
 
-@app.route("/make-move", methods=["POST"])
-def make_move():
+# websocket stuff
 
+@socketio.on("join-game")
+def join_game_(msg = {}):
+    game = Game.get(msg.get("game"))
+    if not game:
+        emit("player-error", { "msg": "invalid game" })
+        return
+    
+    join_room(game.id)
+
+@socketio.on("make-move")
+def make_move_(msg = {}):
+    game = Game.get(msg.get("game"))
+    idx = msg.get("idx")
     user = Player.get(request.cookies.get("user_id"))
-    if not user:
-        abort(401)
 
-    body = request.get_json()
+    if game.is_done():
+        emit("report-error", { "msg": "game is finished" })
+        return
 
-    print("body:", body, type(body))
-
-    idx = body.get("index")
-    game = Game.get(body.get("game"))
-
-    if idx is None:
-        print("invalid idx", idx)
-        abort(400)
-    elif game is None:
-        print("game not found!", body.get("game"), Game.games)
-        abort(404)
-
-    err = game.make_move(user.id, idx)
+    if not game or not idx or not user:
+        emit("player-error", { "msg": "invalid move" })
+        return
+    
+    err, updates = game.make_move(user.id, idx)
     if err != Game.ALL_GOOD:
-        print("ERROR:", Game.get_code(err))
+        emit("player-error", { "msg": Game.get_code(err) })
+        return
+    
+    emit("update-game", {
+        "game": game.id,
+        "updates": updates
+    }, to=game.id)
 
-    return Game.get_code(err), 200 if err == Game.ALL_GOOD else 400
-
-@socketio.on("connect")
-def on_connect():
-    print("user connected")
-
-@socketio.on("message")
-def on_message(msg):
-    print("recieved message:", msg)
-    send(msg)
+    if game.is_done():
+        emit("end-game", {
+            "game": game.id,
+            "winner": game.get_winner()
+        }, to=game.id)
 
 if __name__ == "__main__":
     # from gevent import pywsgi
@@ -210,4 +264,4 @@ if __name__ == "__main__":
     # server = pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler)
     # server.serve_forever()
     # app.run(debug=True, host="0.0.0.0")
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, host="0.0.0.0")
