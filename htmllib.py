@@ -41,3 +41,10 @@ a = html.a
 h1 = html.h1
 h2 = html.h2
 p = html.p
+
+def grid(*items):
+    return div(
+        *items,
+        cls="grid",
+        style=""
+    )
