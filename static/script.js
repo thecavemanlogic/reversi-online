@@ -40,22 +40,22 @@ function checkQueueStatus() {
 }
 
 function click_square(idx) {
-    fetch("/make-move", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            game: game_id,
-            index: idx
-        }),
-        redirect: "follow"
-    }).then(resp => {
-        console.log('all good!')
-        location = location.href;
-    }, resp => {
-        alert("invalid move!");
-    })
+    // fetch("/make-move", {
+    //     method: "POST",
+    //     headers: {
+    //         "Content-Type": "application/json"
+    //     },
+    //     body: JSON.stringify({
+    //         game: game_id,
+    //         index: idx
+    //     }),
+    //     redirect: "follow"
+    // }).then(resp => {
+    //     console.log('all good!')
+    //     location = location.href;
+    // }, resp => {
+    //     alert("invalid move!");
+    // })
 }
 
 if (location.pathname === "/play-game") {
@@ -66,20 +66,45 @@ if (location.pathname === "/play-game") {
 
 let socket = null;
 
-$(document).ready(function() {
+const queryParams = new URLSearchParams(window.location.search);
+const GAME_ID = queryParams.get("id");
 
-    console.log("Document initialized");
+$(document).ready(function() {
 
     socket = io();
 
+    $(".square").click(function() {
+        const idx = parseInt($(this).attr("class").match(/square-[0-9]+/)[0].split("-")[1]);
+        socket.emit("make-move", {
+            game: GAME_ID,
+            idx: idx
+        });
+    })
+
+    console.log("Document initialized");
+
+    
+
     socket.on("connect", function() {
-        console.log("Connected to WS server");
-        socket.send("some data");
+        socket.emit("join-game", {
+            game: GAME_ID
+        });
     });
 
-    socket.on("message", function(msg) {
-        console.log("received:", msg);
+    socket.on("player-error", function(msg) {
+        console.log("Error: " + msg.msg);
     });
+
+    socket.on("update-game", function(state) {
+        console.log("update:", state)
+        for (const [ idx, color ] of state.updates) {
+            $(`.square-${idx}`).html(`<div class="circle ${color == "W" ? "white" : "black"}"></div>`)
+        }
+    })
+
+    socket.on("end-game", function(msg) {
+        alert("Game Ended!\nWinner:" + msg.winner);
+    })
 });
 
 // const ws = new WebSocket(`ws://${location.hostname}`);
