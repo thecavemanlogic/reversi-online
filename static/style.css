@@ -23,9 +23,9 @@
 }
 
 .square:hover {
-    border: 5px solid rgb(201, 201, 201);
+    border: 5px solid #6b3e00;
     transition-duration: 250ms;
-    background-color: black;
+    background-color: #6b3e00;
 }
 
 /* https://stackoverflow.com/questions/6921792/how-to-draw-circle-in-html-page#:~:text=There%20is%20not%20technically%20a%20way%20to%20draw,all%20elements%20into%20a%20circle%2C%20regardless%20of%20size. */
@@ -45,4 +45,59 @@
 
 .white {
     background: white;
+}
+
+body {
+    color: rgb(226, 226, 226);
+    font-family: 'Roboto';
+    text-decoration: none;
+}
+
+#banner {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 3em;
+    background-color: grey;
+}
+
+#body-content {
+    position: absolute;
+    top: 3em;
+    left: 0px;
+    width: 100%;
+    height: 80%;
+    background-color: rgb(95, 95, 95);
+}
+
+.logout-btn {
+    float: right;
+}
+
+button {
+    margin: 10px;
+    padding: 8px;
+    border-radius: 2px;
+    background-color: rgb(240, 144, 0);
+    display: inline-block;
+    border: none;
+}
+
+button:hover {
+    background-color: rgb(206, 123, 0);
+}
+
+.logo {
+    font-size: 32;
+    text-align: center;
+}
+
+#name-display {
+    float: right;
+    margin: 15px;
+}
+
+h3 {
+    margin: 1em;
 }
