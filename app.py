@@ -1,19 +1,30 @@
+import json
+
 from flask import Flask, request, Response, redirect, send_from_directory, abort
 from db.game import Game
 from db.player import Player
-from htmllib import html, head, body, div, h1, div
-from db.util import gen_id
-from random import random
-# from flask_sockets import Sockets
-import json
-import websocket
+from htmllib import html, head, body, div, h1
+# from db.util import gen_id
+# from random import random
+from flask_socketio import SocketIO, emit, send
+
 
 app = Flask(__name__)
-# sockets = Sockets(app)
+socketio = SocketIO(app)
 
 def base(*contents):
     return html.html(
         head(
+            html.script(
+                src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js",
+                integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==",
+                crossorigin="anonymous"
+            ),
+            html.script(
+                src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js",
+                integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==",
+                crossorigin="anonymous"
+            ),
             html.script(src="/static/script.js"),
             html.link(rel="stylesheet", href="/static/style.css")
         ),
@@ -131,13 +142,13 @@ def queue_status():
     player = Player.get(request.cookies.get("user_id"))
     if not player:
         return abort(401)
-    
+
     game_id = player.get_next_game()
     if not game_id:
         return ""
-    
+
     return redirect(f"/play-game?id={game_id}")
-    
+
 
 @app.route("/play-game")
 def play_game():
@@ -184,15 +195,19 @@ def make_move():
 
     return Game.get_code(err), 200 if err == Game.ALL_GOOD else 400
 
-# @sockets.route("/test")
-# def echo_socket(ws):
-#     while not ws.Closed:
-#         msg = ws.receive()
-#         ws.send(msg)
+@socketio.on("connect")
+def on_connect():
+    print("user connected")
+
+@socketio.on("message")
+def on_message(msg):
+    print("recieved message:", msg)
+    send(msg)
 
 if __name__ == "__main__":
     # from gevent import pywsgi
     # from geventwebsocket.handler import WebSocketHandler
     # server = pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler)
     # server.serve_forever()
-    app.run(debug=True, host="0.0.0.0")
+    # app.run(debug=True, host="0.0.0.0")
+    socketio.run(app, debug=True)

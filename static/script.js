@@ -64,7 +64,25 @@ if (location.pathname === "/play-game") {
     // }, 1000);
 }
 
-const ws = new WebSocket(`ws://${location.host}/test`);
-ws.onerror = err => {
-    console.log(err)
-}
+let socket = null;
+
+$(document).ready(function() {
+
+    console.log("Document initialized");
+
+    socket = io();
+
+    socket.on("connect", function() {
+        console.log("Connected to WS server");
+        socket.send("some data");
+    });
+
+    socket.on("message", function(msg) {
+        console.log("received:", msg);
+    });
+});
+
+// const ws = new WebSocket(`ws://${location.hostname}`);
+// ws.onerror = err => {
+//     console.log(err)
+// }
