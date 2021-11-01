@@ -71,7 +71,14 @@ const GAME_ID = queryParams.get("id");
 
 $(document).ready(function() {
 
+    const NAME = document.getElementById("name-display").innerText;
+    console.log("NAME:", NAME)
+
     socket = io();
+
+    socket.emit("get-state", {
+        game: GAME_ID
+    });
 
     $(".square").click(function() {
         const idx = parseInt($(this).attr("class").match(/square-[0-9]+/)[0].split("-")[1]);
@@ -80,10 +87,6 @@ $(document).ready(function() {
             idx: idx
         });
     })
-
-    console.log("Document initialized");
-
-    
 
     socket.on("connect", function() {
         socket.emit("join-game", {
@@ -96,14 +99,20 @@ $(document).ready(function() {
     });
 
     socket.on("update-game", function(state) {
-        console.log("update:", state)
-        for (const [ idx, color ] of state.updates) {
-            $(`.square-${idx}`).html(`<div class="circle ${color == "W" ? "white" : "black"}"></div>`)
-        }
-    })
+        const { game, board, next, winner } = state;
+        
+        // if the event goes along with the current game in focus
+        if (game === GAME_ID) {
 
-    socket.on("end-game", function(msg) {
-        alert("Game Ended!\nWinner:" + msg.winner);
+            for (let i = 0; i < board.length; ++i) {
+                const c = board[i];
+                $(`.square-${i}`).html(`<div class="circle ${c == "W" ? "white" : c == "B" ? "black" : ""}"></div>`);
+            }
+            
+            document.getElementById("turn").innerText = (next == NAME);
+
+            if (winner) alert("Game Ended!\nWinner:" + winner);
+        }        
     })
 });
 

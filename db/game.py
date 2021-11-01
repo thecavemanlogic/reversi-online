@@ -110,8 +110,19 @@ class Game:
     def is_next(self, user: str) -> bool:
         return user == self.players[self.turn]
     
+    def get_next(self):
+        return Player.get(self.players[self.turn]).name
+    
     def get_color(self, user: str) -> str:
         return ["black", "white"][self.players.index(user)]
+    
+    def get_state(self):
+        return {
+            "game": self.id,
+            "board": Game.state_to_string(self.state),
+            "turn": Player.get(self.players[self.turn]).name,
+            "winner": self.get_winner()
+        }
     
     def join(self, name):
         if self.mode != Game.OPEN:

@@ -7,10 +7,8 @@ from db.player import Player
 from htmllib import html, head, body, div, h1
 # from db.util import gen_id
 # from random import random
-from flask_socketio import SocketIO, emit, join_room, leave_room, rooms
+from flask_socketio import SocketIO, emit, join_room, leave_room, rooms, send
 from threading import Timer
-
-
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -71,10 +69,11 @@ def create_game_square(idx, value):
     color = "light" if (x % 2 == 0) != (y % 2 == 0) else "dark"
 
     def get_piece(value):
-        if value == "B":
-            return html.div(cls="circle black")
-        elif value == "W":
-            return html.div(cls="circle white")
+        return html.div()
+        # if value == "B":
+        #     return html.div(cls="circle black")
+        # elif value == "W":
+        #     return html.div(cls="circle white")
 
     return html.div(
         "" if value == "." else get_piece(value),
@@ -109,7 +108,7 @@ def index():
             onclick="location='/dashboard';"
         )
     else:
-        html.button(
+        big_button = html.button(
             "Join Game",
             onclick="join_game();",
             id="join-game-btn"
@@ -173,12 +172,12 @@ def join_game():
     elif len(game_queue) == 1 and user.id not in game_queue:
 
         other_user = Player.get(game_queue.pop())
-        
+
         game = Game()
         game.join(user.id)
         game.join(other_user.id)
         game.save()
-        
+
 
     else:
         game_queue.add(user.id)
@@ -225,7 +224,6 @@ def join_game_(msg = {}):
     if not game:
         emit("player-error", { "msg": "invalid game" })
         return
-    
     join_room(game.id)
 
 @socketio.on("make-move")
@@ -241,22 +239,25 @@ def make_move_(msg = {}):
     if not game or not idx or not user:
         emit("player-error", { "msg": "invalid move" })
         return
-    
+
     err, updates = game.make_move(user.id, idx)
     if err != Game.ALL_GOOD:
         emit("player-error", { "msg": Game.get_code(err) })
         return
-    
-    emit("update-game", {
-        "game": game.id,
-        "updates": updates
-    }, to=game.id)
 
-    if game.is_done():
-        emit("end-game", {
-            "game": game.id,
-            "winner": game.get_winner()
-        }, to=game.id)
+    emit("update-game", game.get_state(), to=game.id)
+
+    # if game.is_done():
+    #     emit("end-game", {
+    #         "game": game.id,
+    #         "winner": game.get_winner()
+    #     }, to=game.id)
+
+@socketio.on("get-state")
+def get_state(msg={}):
+    game = Game.get(msg.get("game"))
+    emit("update-game", game.get_state())
+
 
 if __name__ == "__main__":
     # from gevent import pywsgi
