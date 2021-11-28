@@ -248,6 +248,8 @@ def make_move_(msg = {}):
 
     emit("update-game", game.get_state(), to=game.id)
 
+    game.save()
+
     # if game.is_done():
     #     emit("end-game", {
     #         "game": game.id,
