@@ -275,4 +275,4 @@ if __name__ == "__main__":
     debug = environ.get("DEBUG", "True") .lower() == "true"
     PORT = 8000 if debug else 80
 
-    socketio.run(app, debug=debug, host="0.0.0.0", port=PORT)
+    socketio.run(app, debug=debug, host="0.0.0.0", port=PORT, certfile="/etc/letsencrypt/live/reversi-online.net/fullchain.pem", keyfile="/etc/letsencrypt/live/reversi-online.net/privkey.pem")
