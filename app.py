@@ -125,6 +125,9 @@ def index():
 
 @app.route("/dashboard")
 def dashboard():
+    user = Player.get(request.cookies.get("user_id"))
+    if user is None:
+        abort(404)
     return game_base(
         html.h2("Active Games")
     )
