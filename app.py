@@ -26,6 +26,7 @@ def base(*contents):
                 integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==",
                 crossorigin="anonymous"
             ),
+            html.title("Reversi Online"),
             html.script(src="/static/script.js"),
             html.link(rel="stylesheet", href="/static/style.css"),
 
