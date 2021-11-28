@@ -95,11 +95,11 @@ $(document).ready(function() {
     });
 
     socket.on("player-error", function(msg) {
-        console.log("Error: " + msg.msg);
+        alert("Error: " + msg.msg);
     });
 
     socket.on("update-game", function(state) {
-        const { game, board, next, winner } = state;
+        const { game, board, turn, winner } = state;
         
         // if the event goes along with the current game in focus
         if (game === GAME_ID) {
@@ -108,8 +108,10 @@ $(document).ready(function() {
                 const c = board[i];
                 $(`.square-${i}`).html(`<div class="circle ${c == "W" ? "white" : c == "B" ? "black" : ""}"></div>`);
             }
+
+            console.log(NAME, state);
             
-            document.getElementById("turn").innerText = (next == NAME);
+            document.getElementById("turn").innerText = (turn == NAME);
 
             if (winner) alert("Game Ended!\nWinner:" + winner);
         }        
