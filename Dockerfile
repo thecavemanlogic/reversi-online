@@ -1,8 +1,8 @@
-FROM python:3.9.9-alpine3.14
+FROM python:3.10-slim-buster
+
+RUN pip3 install Flask==2.0.2 flask-socketio==5.1.1 gunicorn==20.1.0 eventlet
 
 COPY . /app
 WORKDIR /app
 
-RUN pip3 install -r requirements.txt
-
-ENTRYPOINT [ "/bin/ash", "run.sh" ]
+ENTRYPOINT [ "/bin/bash", "run.sh" ]
