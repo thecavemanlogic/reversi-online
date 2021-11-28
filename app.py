@@ -1,5 +1,6 @@
 import json
 import threading
+from os import environ
 
 from flask import Flask, request, Response, redirect, send_from_directory, abort
 from db.game import Game
@@ -7,7 +8,7 @@ from db.player import Player
 from htmllib import html, head, body, div, h1
 # from db.util import gen_id
 # from random import random
-from flask_socketio import SocketIO, emit, join_room, leave_room, rooms, send
+from flask_socketio import SocketIO, emit, join_room
 from threading import Timer
 
 app = Flask(__name__)
@@ -271,4 +272,7 @@ if __name__ == "__main__":
     # server = pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler)
     # server.serve_forever()
     # app.run(debug=True, host="0.0.0.0")
-    socketio.run(app, debug=True, host="0.0.0.0")
+    debug = environ.get("DEBUG", "True") .lower() == "true"
+    PORT = 8000 if debug else 80
+
+    socketio.run(app, debug=debug, host="0.0.0.0", port=PORT)

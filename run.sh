@@ -1,3 +1,9 @@
 #!/bin/bash
 
-gunicorn --bind 0.0.0.0:80 wsgi:app
+# socketio doesn't need 
+# see https://flask-socketio.readthedocs.io/en/latest/deployment.html
+
+export DEBUG=false
+
+python3 app.py
+
